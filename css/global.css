@@ -441,16 +441,21 @@
 
   .portfolio-item {
     position: relative;
-    aspect-ratio: 16/9;
+    aspect-ratio: 9 / 16;
     overflow: hidden;
     cursor: none;
     background: var(--card);
   }
-  .portfolio-item.video { cursor: pointer; }
+  .portfolio-item.video {
+    aspect-ratio: 9 / 16;
+    height: auto;
+    background: var(--black);
+    cursor: pointer;
+  }
   .portfolio-item.video video {
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
     display: block;
   }
   .portfolio-item.video .portfolio-overlay { pointer-events: none; }
@@ -466,8 +471,8 @@
     pointer-events: none;
   }
   .portfolio-item.instagram {
-    aspect-ratio: auto;
-    overflow-y: auto;
+    aspect-ratio: 9 / 16;
+    overflow: hidden;
   }
   .portfolio-item .instagram-media {
     margin: 0 !important;
@@ -741,7 +746,6 @@
     .hero-bg-text { font-size: 30vw; }
     #sobre, #contato { grid-template-columns: 1fr; gap: var(--gap-xl); }
     .portfolio-grid { grid-template-columns: 1fr; }
-    .portfolio-item.portrait { aspect-ratio: 16/9; grid-row: span 1; }
     .servicos-grid { grid-template-columns: 1fr; }
     .filter-tabs { flex-wrap: wrap; }
     nav { padding: 16px var(--pad-x); }

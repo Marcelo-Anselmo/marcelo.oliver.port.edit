@@ -63,9 +63,18 @@ function parseUrl(url) {
 }
 
 function cloudinary(url, transform) {
-  return url.includes('/upload/')
-    ? url.replace('/upload/', `/upload/${transform}/`)
-    : url;
+  const uploadPath = '/upload/';
+  const uploadIndex = url.indexOf(uploadPath);
+  if (uploadIndex === -1) return url;
+
+  const prefix = url.slice(0, uploadIndex + uploadPath.length);
+  const path = url.slice(uploadIndex + uploadPath.length).split('/');
+
+  while (path.length && /^(?:c_|w_|h_|ar_|q_|f_|so_|g_|e_|dpr_|r_|b_|fl_|t_)/.test(path[0])) {
+    path.shift();
+  }
+
+  return `${prefix}${transform}/${path.join('/')}`;
 }
 
 function esc(value = '') {
@@ -110,7 +119,7 @@ function card(project) {
   if (info.type === 'file') {
     const video = cloudinary(info.id, 'q_auto');
     const poster = cloudinary(info.id, 'so_0,q_auto,f_jpg')
-      .replace(/\.(mp4|webm|mov)(\?.*)?$/i, '.jpg');
+      .replace(/\.(mp4|webm|mov)(?=\?|$)/i, '.jpg');
     return `
       <div class="portfolio-item video" data-cat="${category}">
         <video src="${esc(video)}" poster="${esc(poster)}" muted loop playsinline preload="none"></video>

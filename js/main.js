@@ -48,78 +48,131 @@ const portfolioGrid = document.getElementById('portfolioGrid');
 let projects = [];
 let currentFilter = 'all';
 
-function createYouTubeCard(project) {
-  const card = document.createElement('div');
-  card.className = 'portfolio-item';
-  card.dataset.cat = project.category;
+function parseUrl(url) {
+  const instagramId = url.match(/instagram\.com\/(?:reel|p)\/([\w-]+)/i)?.[1];
+  if (instagramId) return { type: 'instagram', id: instagramId };
 
-  const image = document.createElement('img');
-  image.src = `https://img.youtube.com/vi/${project.id}/maxresdefault.jpg`;
-  image.alt = project.title;
-  image.loading = 'lazy';
-  image.onerror = () => {
-    image.onerror = null;
-    image.src = `https://img.youtube.com/vi/${project.id}/hqdefault.jpg`;
-  };
+  const youtubeId = url.match(/(?:shorts\/|youtu\.be\/|v=|embed\/)([\w-]{11})/i)?.[1];
+  if (youtubeId) return { type: 'youtube', id: youtubeId };
 
-  const overlay = document.createElement('div');
-  overlay.className = 'portfolio-overlay';
+  if (/\.(mp4|webm|mov)(\?.*)?$/i.test(url)) {
+    return { type: 'file', id: url };
+  }
 
-  const category = document.createElement('div');
-  category.className = 'portfolio-cat';
-  category.textContent = project.tag;
-
-  const title = document.createElement('div');
-  title.className = 'portfolio-title-item';
-  title.textContent = project.title;
-
-  const link = document.createElement('a');
-  link.className = 'portfolio-play';
-  link.href = `https://youtube.com/shorts/${project.id}`;
-  link.target = '_blank';
-  link.rel = 'noopener noreferrer';
-
-  const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  icon.setAttribute('viewBox', '0 0 24 24');
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  path.setAttribute('d', 'M8 5v14l11-7z');
-  icon.append(path);
-  link.append(icon, document.createTextNode('Assistir'));
-  overlay.append(category, title, link);
-  card.append(image, overlay);
-
-  return card;
+  return null;
 }
 
-function createInstagramCard(project) {
-  const card = document.createElement('div');
-  card.className = 'portfolio-item instagram';
+function cloudinary(url, transform) {
+  return url.includes('/upload/')
+    ? url.replace('/upload/', `/upload/${transform}/`)
+    : url;
+}
 
-  const embed = document.createElement('blockquote');
-  embed.className = 'instagram-media';
-  embed.dataset.instgrmPermalink = `https://www.instagram.com/reel/${project.id}/`;
-  embed.dataset.instgrmVersion = '14';
-  card.append(embed);
+function esc(value = '') {
+  return String(value).replace(/[&<>"]/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+  })[character]);
+}
 
-  return card;
+function card(project) {
+  const info = project.url ? parseUrl(project.url) : { type: project.type, id: project.id };
+  if (!info) return '';
+
+  const tag = esc(project.tag || '');
+  const title = esc(project.title || '');
+  const category = esc(project.category || '');
+
+  if (info.type === 'youtube') {
+    return `
+      <div class="portfolio-item" data-cat="${category}">
+        <img src="https://img.youtube.com/vi/${esc(info.id)}/maxresdefault.jpg" alt="${title}" loading="lazy" data-fallback="https://img.youtube.com/vi/${esc(info.id)}/hqdefault.jpg">
+        <div class="portfolio-overlay">
+          <div class="portfolio-cat">${tag}</div>
+          <div class="portfolio-title-item">${title}</div>
+          <a href="https://youtube.com/shorts/${esc(info.id)}" target="_blank" rel="noopener noreferrer" class="portfolio-play">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            Assistir
+          </a>
+        </div>
+      </div>`;
+  }
+
+  if (info.type === 'instagram') {
+    return `
+      <div class="portfolio-item instagram" data-cat="${category}">
+        <blockquote class="instagram-media" data-instgrm-permalink="https://www.instagram.com/reel/${esc(info.id)}/" data-instgrm-version="14"></blockquote>
+      </div>`;
+  }
+
+  if (info.type === 'file') {
+    const video = cloudinary(info.id, 'q_auto');
+    const poster = cloudinary(info.id, 'so_0,q_auto,f_jpg')
+      .replace(/\.(mp4|webm|mov)(\?.*)?$/i, '.jpg');
+    return `
+      <div class="portfolio-item video" data-cat="${category}">
+        <video src="${esc(video)}" poster="${esc(poster)}" muted loop playsinline preload="none"></video>
+        <div class="portfolio-overlay">
+          <div class="portfolio-cat">${tag}</div>
+          <div class="portfolio-title-item">${title}</div>
+        </div>
+        <span class="video-sound" aria-hidden="true">🔇</span>
+      </div>`;
+  }
+
+  return '';
 }
 
 function render(filter = 'all') {
   const visibleProjects = filter === 'all'
     ? projects
     : projects.filter((project) => project.category === filter);
-  const fragment = document.createDocumentFragment();
-
-  visibleProjects.forEach((project) => {
-    const card = project.type === 'youtube'
-      ? createYouTubeCard(project)
-      : createInstagramCard(project);
-    fragment.append(card);
-  });
-
-  portfolioGrid.replaceChildren(fragment);
+  portfolioGrid.innerHTML = visibleProjects.map(card).join('');
   window.instgrm?.Embeds.process();
 }
+
+portfolioGrid.addEventListener('error', (event) => {
+  const media = event.target;
+  if (media instanceof HTMLImageElement && media.dataset.fallback) {
+    media.src = media.dataset.fallback;
+    delete media.dataset.fallback;
+  } else if (media instanceof HTMLVideoElement) {
+    console.error('Erro ao carregar vídeo:', media.currentSrc || media.src);
+  }
+}, true);
+
+portfolioGrid.addEventListener('mouseover', (event) => {
+  if (!(event.target instanceof Element)) return;
+  const item = event.target.closest('.portfolio-item.video');
+  item?.querySelector('video')?.play().catch((error) => {
+    if (error.name !== 'AbortError') console.error('Erro ao reproduzir vídeo:', error);
+  });
+});
+
+portfolioGrid.addEventListener('mouseout', (event) => {
+  if (!(event.target instanceof Element)) return;
+  const item = event.target.closest('.portfolio-item.video');
+  if (!item || (event.relatedTarget instanceof Node && item.contains(event.relatedTarget))) return;
+  item.querySelector('video')?.pause();
+});
+
+portfolioGrid.addEventListener('click', (event) => {
+  if (!(event.target instanceof Element)) return;
+  const item = event.target.closest('.portfolio-item.video');
+  if (!item) return;
+
+  const video = item.querySelector('video');
+  if (video.paused) {
+    video.play().catch((error) => {
+      if (error.name !== 'AbortError') console.error('Erro ao reproduzir vídeo:', error);
+    });
+  }
+
+  video.muted = !video.muted;
+  item.querySelector('.video-sound').textContent = video.muted ? '🔇' : '🔊';
+});
 
 document.querySelectorAll('.filter-tab').forEach((button) => {
   button.addEventListener('click', () => {
@@ -130,15 +183,10 @@ document.querySelectorAll('.filter-tab').forEach((button) => {
   });
 });
 
-fetch('data/projects.json')
-  .then((response) => {
-    if (!response.ok) {
-      throw new Error(`Failed to load projects: ${response.status} ${response.statusText}`);
-    }
-    return response.json();
-  })
+fetch('data/projects.json', { cache: 'no-store' })
+  .then((response) => response.json())
   .then((data) => {
-    projects = data;
+    projects = data.projects || data;
     render(currentFilter);
   })
-  .catch(console.error);
+  .catch((error) => console.error('Erro ao carregar projetos:', error));

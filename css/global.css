@@ -446,6 +446,25 @@
     cursor: none;
     background: var(--card);
   }
+  .portfolio-item.video { cursor: pointer; }
+  .portfolio-item.video video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .portfolio-item.video .portfolio-overlay { pointer-events: none; }
+  .video-sound {
+    position: absolute;
+    top: .8rem;
+    right: .8rem;
+    z-index: 2;
+    font-size: var(--fs-sm);
+    background: rgba(0,0,0,.6);
+    padding: .3rem .5rem;
+    border-radius: 4px;
+    pointer-events: none;
+  }
   .portfolio-item.instagram {
     aspect-ratio: auto;
     overflow-y: auto;

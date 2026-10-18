@@ -1,0 +1,32 @@
+media:
+  input: media
+  output: /media
+
+content:
+  - name: portfolio
+    label: Portfólio
+    type: file
+    path: data/projects.json
+    format: json
+    fields:
+      - name: projects
+        label: Trabalhos
+        type: object
+        list: true
+        fields:
+          - name: url
+            label: Link do vídeo (YouTube, Instagram ou Cloudinary .mp4)
+            type: string
+            required: true
+          - name: title
+            label: Título
+            type: string
+            required: true
+          - name: tag
+            label: Tag (ex. YouTube Shorts · Espaço)
+            type: string
+          - name: category
+            label: Categoria
+            type: select
+            options:
+              values: [Shorts, Reels, Clipes, Motion]

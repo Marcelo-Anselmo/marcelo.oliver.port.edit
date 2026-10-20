@@ -459,6 +459,47 @@
     display: block;
   }
   .portfolio-item.video .portfolio-overlay { pointer-events: none; }
+  .portfolio-item.external {
+    display: block;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+  }
+  .portfolio-item.external img { transition: transform .4s ease; }
+  .portfolio-item.external:hover img { transform: scale(1.05); }
+  .external-placeholder {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, var(--card), var(--surface));
+    color: var(--text);
+    font-family: var(--font-mono), monospace;
+    font-size: var(--fs-sm);
+    letter-spacing: var(--ls-sm);
+    text-transform: uppercase;
+  }
+  .yt-preview {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .portfolio-item .portfolio-overlay { z-index: 2; }
+  .platform-badge {
+    position: absolute;
+    top: .8rem;
+    left: .8rem;
+    z-index: 3;
+    font-size: var(--fs-sm);
+    background: rgba(0,0,0,.6);
+    padding: .3rem .6rem;
+    border-radius: 4px;
+    pointer-events: none;
+  }
   .video-sound {
     position: absolute;
     top: .8rem;

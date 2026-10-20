@@ -52,6 +52,9 @@ function parseUrl(url) {
   const instagramId = url.match(/instagram\.com\/(?:reel|p)\/([\w-]+)/i)?.[1];
   if (instagramId) return { type: 'instagram', id: instagramId };
 
+  const tiktokId = url.match(/tiktok\.com\/@[\w.-]+\/video\/(\d+)/i)?.[1];
+  if (tiktokId) return { type: 'tiktok', id: tiktokId };
+
   const youtubeId = url.match(/(?:shorts\/|youtu\.be\/|v=|embed\/)([\w-]{11})/i)?.[1];
   if (youtubeId) return { type: 'youtube', id: youtubeId };
 
@@ -94,26 +97,31 @@ function card(project) {
   const title = esc(project.title || '');
   const category = esc(project.category || '');
 
-  if (info.type === 'youtube') {
+  if (['youtube', 'instagram', 'tiktok'].includes(info.type)) {
+    const platform = {
+      youtube: 'YouTube',
+      instagram: 'Instagram',
+      tiktok: 'TikTok',
+    }[info.type];
+    const thumbnail = info.type === 'youtube'
+      ? `https://i.ytimg.com/vi/${esc(info.id)}/hqdefault.jpg`
+      : project.thumbnail
+        ? esc(project.thumbnail)
+        : '';
+    const media = thumbnail
+      ? `<img src="${thumbnail}" alt="${title}" loading="lazy">`
+      : `<div class="external-placeholder">${platform}</div>`;
+
     return `
-      <div class="portfolio-item" data-cat="${category}">
-        <img src="https://img.youtube.com/vi/${esc(info.id)}/maxresdefault.jpg" alt="${title}" loading="lazy" data-fallback="https://img.youtube.com/vi/${esc(info.id)}/hqdefault.jpg">
+      <a class="portfolio-item external" data-type="${info.type}" data-id="${esc(info.id)}"
+         href="${esc(project.url || '')}" target="_blank" rel="noopener noreferrer" data-cat="${category}">
+        ${media}
         <div class="portfolio-overlay">
           <div class="portfolio-cat">${tag}</div>
           <div class="portfolio-title-item">${title}</div>
-          <a href="https://youtube.com/shorts/${esc(info.id)}" target="_blank" rel="noopener noreferrer" class="portfolio-play">
-            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-            Assistir
-          </a>
         </div>
-      </div>`;
-  }
-
-  if (info.type === 'instagram') {
-    return `
-      <div class="portfolio-item instagram" data-cat="${category}">
-        <blockquote class="instagram-media" data-instgrm-permalink="https://www.instagram.com/reel/${esc(info.id)}/" data-instgrm-version="14"></blockquote>
-      </div>`;
+        <span class="platform-badge">${platform}</span>
+      </a>`;
   }
 
   if (info.type === 'file') {
@@ -158,6 +166,39 @@ portfolioGrid.addEventListener('mouseover', (event) => {
   item?.querySelector('video')?.play().catch((error) => {
     if (error.name !== 'AbortError') console.error('Erro ao reproduzir vídeo:', error);
   });
+});
+
+const youtubePreviewTimers = new WeakMap();
+
+portfolioGrid.addEventListener('mouseover', (event) => {
+  if (!(event.target instanceof Element)) return;
+  const item = event.target.closest('.external[data-type="youtube"]');
+  if (!item || !window.matchMedia('(hover: hover)').matches) return;
+  if (event.relatedTarget instanceof Node && item.contains(event.relatedTarget)) return;
+
+  const timer = window.setTimeout(() => {
+    if (!item.isConnected || !item.matches(':hover')) return;
+
+    const id = esc(item.dataset.id || '');
+    const preview = document.createElement('iframe');
+    preview.className = 'yt-preview';
+    preview.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${id}&playsinline=1&modestbranding=1`;
+    preview.allow = 'autoplay; encrypted-media';
+    preview.tabIndex = -1;
+    item.append(preview);
+  }, 300);
+
+  youtubePreviewTimers.set(item, timer);
+});
+
+portfolioGrid.addEventListener('mouseout', (event) => {
+  if (!(event.target instanceof Element)) return;
+  const item = event.target.closest('.external[data-type="youtube"]');
+  if (!item || (event.relatedTarget instanceof Node && item.contains(event.relatedTarget))) return;
+
+  window.clearTimeout(youtubePreviewTimers.get(item));
+  youtubePreviewTimers.delete(item);
+  item.querySelector('.yt-preview')?.remove();
 });
 
 portfolioGrid.addEventListener('mouseout', (event) => {

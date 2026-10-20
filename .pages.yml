@@ -15,7 +15,7 @@ content:
         list: true
         fields:
           - name: url
-            label: Link do vídeo (YouTube, Instagram ou Cloudinary .mp4)
+            label: Link do vídeo (YouTube, Instagram, TikTok ou Cloudinary .mp4)
             type: string
             required: true
           - name: title
